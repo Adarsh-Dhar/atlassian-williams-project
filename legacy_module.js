@@ -1,0 +1,1 @@
+function legacyCode() { return 'complexity level 9000'; }
