@@ -1,0 +1,28 @@
+{
+  "name": "institutional-memory-archaeologist",
+  "version": "1.0.0",
+  "description": "Atlassian Forge app that uses a Rovo Agent to capture tacit knowledge from offboarding employees",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "@forge/api": "^3.0.0",
+    "@forge/resolver": "^1.5.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-when": "^3.6.0",
+    "fast-check": "^3.15.0",
+    "@types/jest": "^29.5.8",
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "babel-jest": "^29.7.0",
+    "js-yaml": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
