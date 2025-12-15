@@ -8,4 +8,8 @@ const resolver = new Resolver();
 resolver.define('scanForGaps', scanForGaps);
 resolver.define('saveToConfluence', saveToConfluence);
 
+// Export individual functions for manifest handlers
+exports.scanForGaps = scanForGaps;
+exports.saveToConfluence = saveToConfluence;
+
 exports.handler = resolver.getDefinitions();

@@ -3,46 +3,19 @@ modules:
     - key: memory-archaeologist
       name: Memory Archaeologist
       prompt: You are a forensic technical interviewer. Your goal is to extract tacit knowledge about undocumented projects. Ask specific questions, then offer to save the findings.
-      actions:
-        - key: saveToConfluence
   function:
     - key: scanForGaps
-      handler: scanForGaps
+      handler: index.scanForGaps
     - key: saveToConfluence
-      handler: saveToConfluence
-  consumer:
-    - key: scanForGaps-consumer
-      resolver:
-        function: scanForGaps
-      filter:
-        issuePropertySet:
-          properties:
-            - key: scan-trigger
+      handler: index.saveToConfluence
 app:
   runtime:
-    name: nodejs21.x
-  id: ari:cloud:ecosystem::app/institutional-memory-archaeologist
+    name: nodejs22.x
+  id: ari:cloud:ecosystem::app/a474be86-f2d8-476f-83f1-4b2558bf23e9
 permissions:
   scopes:
     - read:jira-work
     - read:confluence-content.all
     - write:confluence-content
     - read:user:jira
-  external:
-    fetch:
-      backend:
-        - '*.atlassian.net'
-rovo:
-  actions:
-    - key: saveToConfluence
-      actionVerb: GET
-      function: saveToConfluence
-      inputs:
-        - key: title
-          name: Title
-          description: Title for the Confluence page
-          required: true
-        - key: content
-          name: Content
-          description: Content to save to Confluence
-          required: true
+    - read:confluence-user

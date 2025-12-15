@@ -38,8 +38,8 @@ describe('Project Structure Validation', () => {
   test('manifest.yml should contain required runtime configuration', () => {
     const manifestContent = fs.readFileSync('manifest.yml', 'utf8');
     
-    // Check for nodejs21.x runtime
-    expect(manifestContent).toMatch(/nodejs21\.x/);
+    // Check for nodejs22.x runtime
+    expect(manifestContent).toMatch(/nodejs22\.x/);
     
     // Check for required permissions
     expect(manifestContent).toMatch(/read:jira-work/);
