@@ -36,17 +36,17 @@ describe('Resolver Functions', () => {
       
       // Should have the expected resolver functions registered
       const resolverKeys = Object.keys(handler);
-      expect(resolverKeys).toContain('scanForGaps');
+      expect(resolverKeys).toContain('scanLastSixMonths');
       expect(resolverKeys).toContain('saveToConfluence');
       
       // Each resolver should be a function
-      expect(typeof handler.scanForGaps).toBe('function');
+      expect(typeof handler.scanLastSixMonths).toBe('function');
       expect(typeof handler.saveToConfluence).toBe('function');
     });
   });
 
-  describe('scanForGaps Resolver', () => {
-    test('should execute scanForGaps resolver successfully', async () => {
+  describe('scanLastSixMonths Resolver', () => {
+    test('should execute scanLastSixMonths resolver successfully', async () => {
       // Set up mock data for successful scan
       const mockJiraTickets = [
         {
@@ -72,7 +72,7 @@ describe('Resolver Functions', () => {
       });
 
       // Execute the resolver function
-      const result = await handler.scanForGaps({});
+      const result = await handler.scanLastSixMonths({});
       
       // Validate the result
       expect(result).toBeDefined();
@@ -84,12 +84,12 @@ describe('Resolver Functions', () => {
       expect(typeof result.summary.highRiskUsers).toBe('number');
     });
 
-    test('should handle scanForGaps resolver errors gracefully', async () => {
+    test('should handle scanLastSixMonths resolver errors gracefully', async () => {
       // Simulate API error
       mockHelpers.simulateError('jira');
 
       // Execute the resolver function
-      const result = await handler.scanForGaps({});
+      const result = await handler.scanLastSixMonths({});
       
       // Should handle error gracefully
       expect(result).toBeDefined();
@@ -201,7 +201,7 @@ describe('Resolver Functions', () => {
       });
 
       // Step 2: Execute gap scan
-      const scanResult = await handler.scanForGaps({});
+      const scanResult = await handler.scanLastSixMonths({});
       expect(scanResult.success).toBe(true);
 
       // Step 3: Set up Confluence mock for saving
@@ -238,9 +238,9 @@ describe('Resolver Functions', () => {
     test('should maintain resolver function isolation', async () => {
       // Test that resolver functions don't interfere with each other
       
-      // Execute scanForGaps with error
+      // Execute scanLastSixMonths with error
       mockHelpers.simulateError('jira');
-      const scanResult = await handler.scanForGaps({});
+      const scanResult = await handler.scanLastSixMonths({});
       
       // Reset mocks and execute saveToConfluence successfully
       mockHelpers.resetMocks();
@@ -266,7 +266,7 @@ describe('Resolver Functions', () => {
 
       const saveResult = await handler.saveToConfluence(saveRequest);
       
-      // scanForGaps error should not affect saveToConfluence
+      // scanLastSixMonths error should not affect saveToConfluence
       expect(scanResult.success).toBe(true); // Scanner handles errors internally
       expect(saveResult.success).toBe(true);
       expect(saveResult.pageUrl).toContain('isolation-page');
@@ -281,7 +281,7 @@ describe('Resolver Functions', () => {
         {
           name: 'Jira API Error',
           setup: () => mockHelpers.simulateError('jira'),
-          resolver: 'scanForGaps',
+          resolver: 'scanLastSixMonths',
           request: {}
         },
         {
@@ -309,7 +309,7 @@ describe('Resolver Functions', () => {
         // Validate error handling
         expect(result).toBeDefined();
         
-        if (scenario.resolver === 'scanForGaps') {
+        if (scenario.resolver === 'scanLastSixMonths') {
           // Scanner handles errors internally and returns success with empty results
           expect(result.success).toBe(true);
           expect(result.reports).toEqual([]);
@@ -324,10 +324,10 @@ describe('Resolver Functions', () => {
     test('should validate input parameters for all resolvers', async () => {
       // Test input validation across all resolvers
       
-      // scanForGaps should handle empty/undefined input
-      const scanResult1 = await handler.scanForGaps();
-      const scanResult2 = await handler.scanForGaps({});
-      const scanResult3 = await handler.scanForGaps(null);
+      // scanLastSixMonths should handle empty/undefined input
+      const scanResult1 = await handler.scanLastSixMonths();
+      const scanResult2 = await handler.scanLastSixMonths({});
+      const scanResult3 = await handler.scanLastSixMonths(null);
       
       expect(scanResult1.success).toBe(true);
       expect(scanResult2.success).toBe(true);

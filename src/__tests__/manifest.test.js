@@ -46,21 +46,21 @@ describe('Manifest Configuration Validation', () => {
   });
 
   describe('Rovo Agent Configuration', () => {
-    test('should have Memory Archaeologist agent configured', () => {
-      const agent = manifest.modules['rovo:agent'].find(a => a.key === 'memory-archaeologist');
+    test('should have Legacy Keeper agent configured', () => {
+      const agent = manifest.modules['rovo:agent'].find(a => a.key === 'legacy-keeper');
       expect(agent).toBeDefined();
-      expect(agent.name).toBe('Memory Archaeologist');
+      expect(agent.name).toBe('Legacy Keeper');
     });
 
     test('should have correct forensic interviewer prompt', () => {
-      const agent = manifest.modules['rovo:agent'].find(a => a.key === 'memory-archaeologist');
+      const agent = manifest.modules['rovo:agent'].find(a => a.key === 'legacy-keeper');
       expect(agent.prompt).toContain('forensic technical interviewer');
       expect(agent.prompt).toContain('extract tacit knowledge');
-      expect(agent.prompt).toContain('undocumented projects');
+      expect(agent.prompt).toContain('concrete artifacts');
     });
 
     test('should have agent configured without explicit actions', () => {
-      const agent = manifest.modules['rovo:agent'].find(a => a.key === 'memory-archaeologist');
+      const agent = manifest.modules['rovo:agent'].find(a => a.key === 'legacy-keeper');
       // Actions are not explicitly defined in the simplified manifest structure
       expect(agent.actions).toBeUndefined();
     });
@@ -85,10 +85,10 @@ describe('Manifest Configuration Validation', () => {
   });
 
   describe('Function Modules', () => {
-    test('should have scanForGaps function defined', () => {
-      const scanFunction = manifest.modules.function.find(f => f.key === 'scanForGaps');
+    test('should have scanLastSixMonths function defined', () => {
+      const scanFunction = manifest.modules.function.find(f => f.key === 'scanLastSixMonths');
       expect(scanFunction).toBeDefined();
-      expect(scanFunction.handler).toBe('index.scanForGaps');
+      expect(scanFunction.handler).toBe('index.scanLastSixMonths');
     });
 
     test('should have saveToConfluence function defined', () => {

@@ -1,128 +1,138 @@
-# Implementation Plan
+# Legacy Keeper Implementation Plan
 
-- [x] 1. Initialize Forge app structure and testing framework
-  - Create Forge app using `forge create` with Node.js template
-  - Set up Jest testing framework with jest-when dependency
-  - Create comprehensive __mocks__/@forge/api.js file for API mocking
-  - Configure package.json with required dependencies (jest, jest-when, fast-check)
-  - _Requirements: 6.1, 6.4, 6.5_
+- [x] 1. Refactor existing codebase to Legacy Keeper branding
+  - Update all references from "Memory Archaeologist" to "Legacy Keeper" in code files
+  - Update agent prompts to forensic, artifact-specific questioning style
+  - Rename MemoryArchaeologistAgent to LegacyKeeperAgent in all files
+  - Update Background Scanner to Legacy Detector with 6-month constraint
+  - _Requirements: 2.1, 2.2_
 
-- [x] 1.1 Write property test for project initialization
-  - **Property 1: Project structure validation**
-  - **Validates: Requirements 6.1, 6.4**
+- [x] 1.1 Write property test for Legacy Keeper agent artifact-specific questions
+  - **Property 2: Agent generates artifact-specific questions**
+  - **Validates: Requirements 2.2**
 
-- [x] 2. Implement manifest.yml with correct permissions and Rovo configuration
-  - Configure manifest.yml with nodejs21.x runtime
-  - Add required permissions: read:jira-work, read:confluence-content.all, write:confluence-content, read:user:jira
-  - Configure Rovo Agent module with Memory Archaeologist prompt
-  - Set actionVerb: GET for saveToConfluence function (critical constraint)
-  - _Requirements: 4.1, 4.2, 4.3, 3.5, 6.1_
+- [x] 2. Implement Bitbucket integration service
+  - Create BitbucketService class with API integration methods
+  - Implement getPullRequestsLastSixMonths function with 6-month constraint
+  - Add getCommitHistory function for developer activity analysis
+  - Create analyzePRComplexity function to calculate complexity scores
+  - Implement getDiffContext function for code change analysis
+  - _Requirements: 1.1, 1.2_
 
-- [x] 2.1 Write unit tests for manifest configuration validation
-  - Test manifest contains all required permissions
-  - Test Rovo Agent configuration is correct
-  - Test actionVerb is set to GET
-  - _Requirements: 4.1, 4.2, 4.3, 3.5_
-
-- [x] 3. Implement core data models and interfaces
-  - Create TypeScript interfaces for KnowledgeArtifact, InterviewContext, JiraTicket
-  - Implement KnowledgeGapReport and ConfluencePageResult models
-  - Create API response wrapper interfaces (ForgeApiResponse, ApiError)
-  - Add input validation functions for all data models
-  - _Requirements: 1.4, 3.3, 4.5_
-
-- [x] 3.1 Write property test for data model validation
-  - **Property 4: Structured data return format**
-  - **Validates: Requirements 1.4**
-
-- [x] 4. Implement Background Scanner functionality
-  - Create scanForGaps resolver function that analyzes Jira work activity
-  - Implement identifyZombieTickets function to find high-activity, low-documentation tickets
-  - Add calculateDocumentationRatio function for knowledge gap classification
-  - Implement notification logging for detected knowledge gaps
-  - _Requirements: 1.1, 1.2, 1.3, 1.4_
-
-- [x] 4.1 Write property test for scanner identification logic
-  - **Property 1: Scanner identifies high-activity users**
+- [x] 2.1 Write property test for Bitbucket integration data consistency
+  - **Property 6: Bitbucket integration data consistency**
   - **Validates: Requirements 1.1**
 
-- [x] 4.2 Write property test for knowledge gap classification
-  - **Property 2: Knowledge gap classification accuracy**
+- [x] 3. Implement enhanced data models for Legacy Keeper
+  - Create BitbucketPR, Commit, DiffContext, and ChangedFile interfaces
+  - Update KnowledgeArtifact to include relatedPRs and relatedCommits fields
+  - Enhance InterviewContext with recentPullRequests and commitHistory
+  - Add CodeArtifact and DeveloperActivity models for comprehensive tracking
+  - Create UndocumentedIntensityReport model for scan results
+  - _Requirements: 1.1, 1.2, 1.4_
+
+- [x] 4. Implement Undocumented Intensity algorithm in Legacy Detector
+  - Replace existing knowledge gap logic with Undocumented Intensity calculation
+  - Implement formula: (High Complexity PRs + Critical Jira Tickets) / (Documentation Links)
+  - Add identifyHighComplexityPRs function using Bitbucket data
+  - Create identifyCriticalTickets function for Jira analysis
+  - Implement findDocumentationLinks function to count existing documentation
+  - Enforce strict 6-month lookback constraint across all data sources
+  - _Requirements: 1.1, 1.2_
+
+- [x] 4.1 Write property test for six-month constraint enforcement
+  - **Property 4: Six-month constraint enforcement**
+  - **Validates: Requirements 1.1**
+
+- [x] 4.2 Write property test for Undocumented Intensity calculation
+  - **Property 5: Undocumented Intensity calculation accuracy**
   - **Validates: Requirements 1.2**
 
-- [x] 4.3 Write property test for notification logging
-  - **Property 3: Notification logging for detected gaps**
-  - **Validates: Requirements 1.3**
+- [x] 4.3 Write property test for Legacy Detector identification
+  - **Property 1: Legacy Detector identifies departing users with Undocumented Intensity**
+  - **Validates: Requirements 1.1, 1.2**
 
-- [x] 5. Implement Confluence integration service
-  - Create saveToConfluence resolver function with title and content parameters
-  - Implement Confluence API integration using api.asUser().requestConfluence()
-  - Add content formatting functions for knowledge artifacts
-  - Implement permission validation for Confluence access
-  - _Requirements: 3.1, 3.2, 3.3, 4.2_
+- [x] 5. Update Legacy Keeper Agent with forensic questioning capabilities
+  - Modify agent prompt to reference specific artifacts (PR IDs, commit hashes, Jira tickets)
+  - Implement generateArtifactQuestions function for context-specific interviews
+  - Update conductForensicInterview to use artifact-specific context
+  - Add extractTacitKnowledge function focused on "why" behind code decisions
+  - Enhance formatForArchival to include artifact references and bidirectional links
+  - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [x] 5.1 Write property test for Confluence page creation
-  - **Property 5: Confluence page creation consistency**
-  - **Validates: Requirements 3.2**
+- [ ] 6. Enhance Confluence integration with artifact linking
+  - Update saveToConfluence to support Legacy Document creation with artifact links
+  - Implement createLegacyDocument function with enhanced formatting
+  - Add linkToArtifacts function for bidirectional linking to PRs and Jira tickets
+  - Update content formatting to include references to specific artifacts
+  - Ensure Legacy Documents link back to original source artifacts
+  - _Requirements: 3.1, 3.2, 3.3_
 
-- [x] 5.2 Write property test for page URL return format
-  - **Property 6: Page URL return format**
-  - **Validates: Requirements 3.3**
+- [x] 6.1 Write property test for archive process artifact linking
+  - **Property 3: Archive process links Legacy Documents to source artifacts**
+  - **Validates: Requirements 3.2, 3.3**
 
-- [x] 6. Implement comprehensive error handling
-  - Add try-catch blocks around all API calls with specific error type handling
-  - Implement graceful handling for 403 Forbidden errors without exposing sensitive data
-  - Create structured logging system with appropriate log levels
-  - Add error message formatting for user-friendly responses
+- [x] 7. Update comprehensive API mocking for Bitbucket integration
+  - Extend __mocks__/@forge/api.js to include Bitbucket API responses
+  - Create mock implementations for Bitbucket PR and commit data
+  - Add mock scenarios for Bitbucket API errors and rate limiting
+  - Update existing Jira and Confluence mocks to support new data models
+  - Include mock data that supports 6-month constraint testing
+  - _Requirements: 5.2, 5.3, 5.4_
+
+- [x] 7.1 Write unit tests for enhanced API mocking
+  - Test Bitbucket API mocks return expected PR and commit data
+  - Test six-month constraint is properly enforced in mock data
+  - Test error scenario mocks for all three APIs (Jira, Confluence, Bitbucket)
+  - _Requirements: 5.2, 5.3, 5.4_
+
+- [x] 8. Update manifest.yml for Bitbucket permissions
+  - Add required Bitbucket API permissions to manifest
+  - Update Rovo Agent configuration with new Legacy Keeper prompt
+  - Ensure all existing permissions (Jira, Confluence) remain intact
+  - Update function configurations to support new Bitbucket integration
+  - _Requirements: 4.1, 4.2, 4.3_
+
+- [x] 9. Implement enhanced error handling for Bitbucket integration
+  - Add try-catch blocks for Bitbucket API calls with specific error handling
+  - Implement graceful handling for Bitbucket rate limiting and permission errors
+  - Update error logging to include artifact-specific context
+  - Add fallback mechanisms when Bitbucket data is unavailable
+  - Enhance existing error handling for Jira and Confluence APIs
   - _Requirements: 3.4, 4.4, 4.5_
 
-- [x] 6.1 Write property test for API error handling
+- [x] 9.1 Write property test for enhanced API error handling
   - **Property 7: Graceful error handling for API failures**
   - **Validates: Requirements 3.4, 4.4**
 
-- [x] 6.2 Write property test for error logging consistency
+- [x] 9.2 Write property test for error logging consistency
   - **Property 8: Error logging consistency**
   - **Validates: Requirements 4.5**
 
-- [x] 7. Configure Rovo Agent with forensic interviewer prompt
-  - Implement Memory Archaeologist agent with specific prompt configuration
-  - Create agent response handlers for knowledge extraction conversations
-  - Integrate saveToConfluence function availability within agent context
-  - Add conversation flow management for structured interviews
-  - _Requirements: 2.1, 2.3, 3.1_
-
-- [x] 7.1 Write unit tests for Rovo Agent configuration
-  - Test agent uses correct forensic interviewer prompt
-  - Test saveToConfluence function is available to agent
-  - _Requirements: 2.1, 2.3, 3.1_
-
-- [-] 8. Implement comprehensive API mocking for tests
-  - Create mock implementations for api.asApp().requestJira() returning sample Zombie Tickets
-  - Create mock implementations for api.asUser().requestConfluence() returning 200 OK responses
-  - Add mock error scenarios for 403 Forbidden and other API failures
-  - Implement route template tag function mocking
-  - _Requirements: 5.2, 5.3, 5.4_
-
-- [x] 8.1 Write unit tests validating mock implementations
-  - Test Jira API mocks return expected Zombie Ticket data
-  - Test Confluence API mocks return proper 200 OK responses
-  - Test error scenario mocks trigger appropriate error handling
-  - _Requirements: 5.2, 5.3, 5.4_
-
-- [x] 9. Checkpoint - Ensure all tests pass
+- [ ] 10. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [x] 10. Integration testing and final validation
-  - Create end-to-end test scenarios covering complete knowledge extraction workflow
-  - Validate all resolver functions achieve 100% test coverage
-  - Test complete flow from knowledge gap detection through Confluence page creation
-  - Verify all error handling scenarios work correctly
-  - _Requirements: 5.1, 5.5_
+- [x] 11. Implement cognitive offboarding workflow integration
+  - Create end-to-end workflow: Trigger → Scan → Interview → Archive
+  - Integrate Legacy Detector with Legacy Keeper Agent for seamless handoff
+  - Implement workflow state management for offboarding sessions
+  - Add progress tracking for cognitive offboarding completion
+  - Create workflow validation to ensure all artifacts are properly captured
+  - _Requirements: 1.1, 2.1, 3.1_
 
-- [x] 10.1 Write integration tests for complete workflows
-  - Test full knowledge extraction and storage workflow
-  - Test error recovery across component boundaries
-  - _Requirements: 5.1_
+- [x] 11.1 Write integration tests for cognitive offboarding workflow
+  - Test complete Trigger → Scan → Interview → Archive flow
+  - Test workflow handles missing or incomplete data gracefully
+  - Test artifact references are maintained throughout the workflow
+  - _Requirements: 1.1, 2.1, 3.1_
 
-- [x] 11. Final Checkpoint - Ensure all tests pass
+- [x] 12. Final validation and testing
+  - Validate all Legacy Keeper functionality works with real-world data patterns
+  - Test Undocumented Intensity algorithm with various developer activity profiles
+  - Verify artifact-specific questioning generates meaningful interviews
+  - Confirm bidirectional linking between Legacy Documents and source artifacts
+  - Validate 6-month constraint is enforced across all data sources
+  - _Requirements: 1.1, 1.2, 2.2, 3.2, 3.3_
+
+- [ ] 13. Final Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.

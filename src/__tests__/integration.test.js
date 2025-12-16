@@ -1,11 +1,11 @@
 const { mockHelpers } = require('../__mocks__/@forge/api');
-const { scanForGaps } = require('../scanners/backgroundScanner');
+const { scanLastSixMonths } = require('../scanners/legacyDetector');
 const { saveToConfluence } = require('../services/confluenceService');
 const {
   createInterviewContext,
   extractKnowledgeFromResponses,
   formatKnowledgeForStorage
-} = require('../agents/memoryArchaeologist');
+} = require('../agents/legacyKeeper');
 
 /**
  * Integration Tests for Complete Workflows
@@ -46,96 +46,96 @@ describe('Integration Tests - Complete Workflows', () => {
           id: '1',
           key: 'PROJ-123',
           fields: {
-            summary: 'Implement API integration',
-            description: 'Brief description without documentation links',
+            summary: 'Implement complex API integration with authentication and rate limiting features',
+            description: 'Brief',
             assignee: {
               accountId: 'emp123',
               displayName: 'John Developer'
             },
             status: { name: 'Done' },
             created: '2024-01-01T10:00:00.000Z',
-            updated: '2024-01-15T15:30:00.000Z',
-            comment: { total: 2 }
+            updated: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
+            comment: { total: 5 }
           }
         },
         {
           id: '2',
           key: 'PROJ-124',
           fields: {
-            summary: 'Database migration script',
-            description: 'Another brief description',
+            summary: 'Database migration script with complex schema changes and data transformation',
+            description: 'Brief',
             assignee: {
               accountId: 'emp123',
               displayName: 'John Developer'
             },
             status: { name: 'Done' },
             created: '2024-01-02T10:00:00.000Z',
-            updated: '2024-01-16T15:30:00.000Z',
-            comment: { total: 1 }
+            updated: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), // 45 days ago
+            comment: { total: 4 }
           }
         },
         {
           id: '3',
           key: 'PROJ-125',
           fields: {
-            summary: 'Legacy system integration',
-            description: 'Minimal documentation',
+            summary: 'Legacy system integration with multiple external services and complex mapping',
+            description: 'Brief',
             assignee: {
               accountId: 'emp123',
               displayName: 'John Developer'
             },
             status: { name: 'Done' },
             created: '2024-01-03T10:00:00.000Z',
-            updated: '2024-01-17T15:30:00.000Z',
-            comment: { total: 3 }
+            updated: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(), // 60 days ago
+            comment: { total: 6 }
           }
         },
         {
           id: '4',
           key: 'PROJ-126',
           fields: {
-            summary: 'Performance optimization',
-            description: 'Brief notes',
+            summary: 'Performance optimization for high-traffic endpoints with caching strategy',
+            description: 'Brief',
             assignee: {
               accountId: 'emp123',
               displayName: 'John Developer'
             },
             status: { name: 'Done' },
             created: '2024-01-04T10:00:00.000Z',
-            updated: '2024-01-18T15:30:00.000Z',
-            comment: { total: 1 }
+            updated: new Date(Date.now() - 75 * 24 * 60 * 60 * 1000).toISOString(), // 75 days ago
+            comment: { total: 7 }
           }
         },
         {
           id: '5',
           key: 'PROJ-127',
           fields: {
-            summary: 'Security updates',
-            description: 'Quick fix',
+            summary: 'Security updates and vulnerability patches for authentication system',
+            description: 'Brief',
             assignee: {
               accountId: 'emp123',
               displayName: 'John Developer'
             },
             status: { name: 'Done' },
             created: '2024-01-05T10:00:00.000Z',
-            updated: '2024-01-19T15:30:00.000Z',
-            comment: { total: 2 }
+            updated: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days ago
+            comment: { total: 4 }
           }
         },
         {
           id: '6',
           key: 'PROJ-128',
           fields: {
-            summary: 'Deployment automation',
-            description: 'Automated deployment process',
+            summary: 'Deployment automation with complex CI/CD pipeline and infrastructure changes',
+            description: 'Brief',
             assignee: {
               accountId: 'emp123',
               displayName: 'John Developer'
             },
             status: { name: 'Done' },
             created: '2024-01-06T10:00:00.000Z',
-            updated: '2024-01-20T15:30:00.000Z',
-            comment: { total: 1 }
+            updated: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(), // 120 days ago
+            comment: { total: 5 }
           }
         }
       ];
@@ -145,7 +145,7 @@ describe('Integration Tests - Complete Workflows', () => {
       });
 
       // Step 2: Execute knowledge gap detection
-      const gapScanResult = await scanForGaps({});
+      const gapScanResult = await scanLastSixMonths({});
       
       expect(gapScanResult.success).toBe(true);
       expect(gapScanResult.reports).toBeDefined();
@@ -153,7 +153,7 @@ describe('Integration Tests - Complete Workflows', () => {
       
       const report = gapScanResult.reports[0];
       expect(report.userId).toBe('emp123');
-      expect(report.ticketCount).toBe(6); // Should detect 6 tickets for this user
+      expect(report.criticalJiraTickets.length).toBeGreaterThan(0); // Should detect critical tickets for this user
       expect(report.riskLevel).toBeDefined();
 
       // Step 3: Create interview context based on detected gaps
@@ -275,7 +275,7 @@ describe('Integration Tests - Complete Workflows', () => {
       });
 
       // Execute gap detection
-      const gapScanResult = await scanForGaps({});
+      const gapScanResult = await scanLastSixMonths({});
       
       // Should still work even with minimal data
       expect(gapScanResult.success).toBe(true);
@@ -344,7 +344,7 @@ describe('Integration Tests - Complete Workflows', () => {
       // Simulate Jira API error
       mockHelpers.simulateError('jira');
 
-      const gapScanResult = await scanForGaps({});
+      const gapScanResult = await scanLastSixMonths({});
       
       // Should handle error gracefully - the scanner catches errors and returns empty results
       expect(gapScanResult.success).toBe(true);
@@ -401,7 +401,7 @@ describe('Integration Tests - Complete Workflows', () => {
       });
 
       // Execute successful gap detection
-      const gapScanResult = await scanForGaps({});
+      const gapScanResult = await scanLastSixMonths({});
       expect(gapScanResult.success).toBe(true);
 
       // Create interview context and extract knowledge
@@ -471,7 +471,7 @@ describe('Integration Tests - Complete Workflows', () => {
       });
 
       // Gap detection should work
-      const gapScanResult = await scanForGaps({});
+      const gapScanResult = await scanLastSixMonths({});
       expect(gapScanResult.success).toBe(true);
 
       // Knowledge extraction should work
@@ -521,16 +521,16 @@ describe('Integration Tests - Complete Workflows', () => {
           id: '1',
           key: 'INTEGRITY-1',
           fields: {
-            summary: 'Data integrity test',
-            description: 'Test for maintaining data consistency',
+            summary: 'Data integrity test with complex validation logic and error handling mechanisms',
+            description: 'Brief',
             assignee: {
               accountId: 'emp-integrity',
               displayName: 'Integrity User'
             },
             status: { name: 'Done' },
             created: '2024-01-01T10:00:00.000Z',
-            updated: '2024-01-02T10:00:00.000Z',
-            comment: { total: 2 }
+            updated: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
+            comment: { total: 5 }
           }
         }
       ];
@@ -540,7 +540,7 @@ describe('Integration Tests - Complete Workflows', () => {
       });
 
       // Execute gap detection
-      const gapScanResult = await scanForGaps({});
+      const gapScanResult = await scanLastSixMonths({});
       expect(gapScanResult.success).toBe(true);
       
       const originalReport = gapScanResult.reports[0];
@@ -609,16 +609,16 @@ describe('Integration Tests - Complete Workflows', () => {
           id: '1',
           key: 'TYPE-1',
           fields: {
-            summary: 'Type consistency test',
-            description: 'Testing data type consistency',
+            summary: 'Type consistency test with complex data validation and transformation logic',
+            description: 'Brief',
             assignee: {
               accountId: 'emp-types',
               displayName: 'Type User'
             },
             status: { name: 'Done' },
             created: '2024-01-01T10:00:00.000Z',
-            updated: '2024-01-02T10:00:00.000Z',
-            comment: { total: 1 }
+            updated: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
+            comment: { total: 4 }
           }
         }
       ];
@@ -638,14 +638,14 @@ describe('Integration Tests - Complete Workflows', () => {
       });
 
       // Execute workflow and validate data types at each step
-      const gapScanResult = await scanForGaps({});
+      const gapScanResult = await scanLastSixMonths({});
       
       // Validate gap scan result types
       expect(typeof gapScanResult.success).toBe('boolean');
       expect(Array.isArray(gapScanResult.reports)).toBe(true);
       expect(typeof gapScanResult.reports[0].userId).toBe('string');
-      expect(typeof gapScanResult.reports[0].ticketCount).toBe('number');
-      expect(typeof gapScanResult.reports[0].documentationRatio).toBe('number');
+      expect(typeof gapScanResult.reports[0].undocumentedIntensityScore).toBe('number');
+      expect(Array.isArray(gapScanResult.reports[0].criticalJiraTickets)).toBe(true);
       
       const context = createInterviewContext({
         employeeId: gapScanResult.reports[0].userId,
@@ -738,7 +738,7 @@ describe('Integration Tests - Complete Workflows', () => {
       });
 
       // Should handle edge case data gracefully
-      const gapScanResult = await scanForGaps({});
+      const gapScanResult = await scanLastSixMonths({});
       expect(gapScanResult.success).toBe(true);
 
       const context = createInterviewContext({

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Feature: institutional-memory-archaeologist, Property 1: Project structure validation
+ * Feature: legacy-keeper, Property 1: Project structure validation
  * Validates: Requirements 6.1, 6.4
  */
 describe('Project Structure Validation', () => {

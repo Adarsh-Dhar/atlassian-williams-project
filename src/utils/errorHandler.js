@@ -2,7 +2,7 @@ const { ApiError } = require('../models');
 
 /**
  * Comprehensive Error Handling Utilities
- * Provides centralized error handling for the Institutional Memory Archaeologist
+ * Provides centralized error handling for the Legacy Keeper
  */
 
 /**
@@ -41,19 +41,8 @@ function handleApiError(error, context = 'Unknown') {
   let userMessage = 'An unexpected error occurred. Please try again later.';
   let logLevel = LOG_LEVELS.ERROR;
   
-  if (error.message && error.message.includes('403')) {
-    errorType = ERROR_TYPES.PERMISSION_DENIED;
-    userMessage = 'Permission denied. Please check your access permissions.';
-    logLevel = LOG_LEVELS.WARN;
-  } else if (error.message && (error.message.includes('404') || error.message.includes('Not Found'))) {
-    errorType = ERROR_TYPES.API_ERROR;
-    userMessage = 'The requested resource was not found.';
-    logLevel = LOG_LEVELS.WARN;
-  } else if (error.message && (error.message.includes('500') || error.message.includes('Internal Server'))) {
-    errorType = ERROR_TYPES.API_ERROR;
-    userMessage = 'A server error occurred. Please try again later.';
-    logLevel = LOG_LEVELS.ERROR;
-  } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+  // Check for network errors first (by error code)
+  if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
     errorType = ERROR_TYPES.NETWORK_ERROR;
     userMessage = 'Network connection error. Please check your connection and try again.';
     logLevel = LOG_LEVELS.ERROR;
@@ -61,6 +50,25 @@ function handleApiError(error, context = 'Unknown') {
     errorType = ERROR_TYPES.VALIDATION_ERROR;
     userMessage = error.message || 'Invalid input provided.';
     logLevel = LOG_LEVELS.WARN;
+  } else if (error.message) {
+    // Check HTTP status codes and specific error messages
+    if (error.message.includes('403')) {
+      errorType = ERROR_TYPES.PERMISSION_DENIED;
+      userMessage = 'Permission denied. Please check your access permissions.';
+      logLevel = LOG_LEVELS.WARN;
+    } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+      errorType = ERROR_TYPES.API_ERROR;
+      userMessage = 'The requested resource was not found.';
+      logLevel = LOG_LEVELS.WARN;
+    } else if (error.message.includes('429') || error.message.includes('Too Many Requests') || error.message.includes('Rate limit')) {
+      errorType = ERROR_TYPES.API_ERROR;
+      userMessage = 'A server error occurred. Please try again later.';
+      logLevel = LOG_LEVELS.ERROR;
+    } else if (error.message.includes('500') || error.message.includes('Internal Server')) {
+      errorType = ERROR_TYPES.API_ERROR;
+      userMessage = 'A server error occurred. Please try again later.';
+      logLevel = LOG_LEVELS.ERROR;
+    }
   }
   
   // Log the error with appropriate level
@@ -125,7 +133,7 @@ function logError(logData, level = LOG_LEVELS.ERROR) {
   const logEntry = {
     level,
     timestamp: logData.timestamp || new Date().toISOString(),
-    service: 'institutional-memory-archaeologist',
+    service: 'legacy-keeper',
     ...logData
   };
   

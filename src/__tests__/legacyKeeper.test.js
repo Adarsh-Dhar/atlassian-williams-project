@@ -1,3 +1,4 @@
+const fc = require('fast-check');
 const {
   AGENT_CONFIG,
   INTERVIEW_TEMPLATES,
@@ -5,17 +6,18 @@ const {
   extractKnowledgeFromResponses,
   formatKnowledgeForStorage,
   getInterviewQuestions,
+  generateArtifactQuestions,
   validateAgentConfiguration,
   generateSessionId,
   extractTagsFromContent,
   calculateResponseConfidence
-} = require('../agents/memoryArchaeologist');
+} = require('../agents/legacyKeeper');
 
 /**
- * Memory Archaeologist Agent Tests
+ * Legacy Keeper Agent Tests
  * Validates: Requirements 2.1, 2.3, 3.1
  */
-describe('Memory Archaeologist Agent', () => {
+describe('Legacy Keeper Agent', () => {
 
   beforeEach(() => {
     // Mock console methods to avoid noise in tests
@@ -34,16 +36,19 @@ describe('Memory Archaeologist Agent', () => {
   });
 
   describe('Agent Configuration', () => {
-    test('should have correct forensic interviewer prompt', () => {
+    test('should have correct forensic interviewer prompt with artifact-specific questioning', () => {
       expect(AGENT_CONFIG.prompt).toContain('forensic technical interviewer');
-      expect(AGENT_CONFIG.prompt).toContain('extract tacit knowledge');
-      expect(AGENT_CONFIG.prompt).toContain('undocumented projects');
-      expect(AGENT_CONFIG.prompt).toContain('save the findings');
+      expect(AGENT_CONFIG.prompt).toContain('cognitive offboarding');
+      expect(AGENT_CONFIG.prompt).toContain('concrete artifacts');
+      expect(AGENT_CONFIG.prompt).toContain('PR IDs:');
+      expect(AGENT_CONFIG.prompt).toContain('Commit hashes:');
+      expect(AGENT_CONFIG.prompt).toContain('Jira tickets:');
+      expect(AGENT_CONFIG.prompt).toContain('WHY');
     });
 
     test('should have proper agent identification', () => {
-      expect(AGENT_CONFIG.key).toBe('memory-archaeologist');
-      expect(AGENT_CONFIG.name).toBe('Memory Archaeologist');
+      expect(AGENT_CONFIG.key).toBe('legacy-keeper');
+      expect(AGENT_CONFIG.name).toBe('Legacy Keeper');
       expect(AGENT_CONFIG.description).toBeDefined();
     });
 
@@ -120,16 +125,21 @@ describe('Memory Archaeologist Agent', () => {
       const questions = getInterviewQuestions(context, 'opening');
       
       expect(questions.length).toBeGreaterThan(0);
-      expect(questions[0]).toContain('Memory Archaeologist');
+      expect(questions[0]).toContain('Legacy Keeper');
       expect(questions.some(q => q.includes('knowledge'))).toBe(true);
     });
 
-    test('should provide project-specific questions', () => {
-      const questions = getInterviewQuestions({}, 'projectQuestions');
+    test('should provide artifact-specific questions', () => {
+      const context = {
+        specificArtifacts: [
+          { type: 'JIRA_TICKET', id: 'PROJ-123', title: 'Test ticket', author: 'user1', date: new Date() }
+        ]
+      };
+      const questions = getInterviewQuestions(context, 'artifactQuestions');
       
       expect(questions.length).toBeGreaterThan(0);
-      expect(questions.some(q => q.includes('documentation'))).toBe(true);
-      expect(questions.some(q => q.includes('tribal knowledge'))).toBe(true);
+      expect(questions.some(q => q.includes('PR #') || q.includes('commit') || q.includes('Jira ticket'))).toBe(true);
+      expect(questions.some(q => q.includes('PROJ-123'))).toBe(true);
     });
 
     test('should customize questions based on identified gaps', () => {
@@ -148,14 +158,63 @@ describe('Memory Archaeologist Agent', () => {
 
     test('should have all interview template phases', () => {
       expect(INTERVIEW_TEMPLATES.opening).toBeDefined();
-      expect(INTERVIEW_TEMPLATES.projectQuestions).toBeDefined();
+      expect(INTERVIEW_TEMPLATES.artifactQuestions).toBeDefined();
       expect(INTERVIEW_TEMPLATES.processQuestions).toBeDefined();
       expect(INTERVIEW_TEMPLATES.closingQuestions).toBeDefined();
       
       expect(INTERVIEW_TEMPLATES.opening.length).toBeGreaterThan(0);
-      expect(INTERVIEW_TEMPLATES.projectQuestions.length).toBeGreaterThan(0);
+      expect(INTERVIEW_TEMPLATES.artifactQuestions.length).toBeGreaterThan(0);
       expect(INTERVIEW_TEMPLATES.processQuestions.length).toBeGreaterThan(0);
       expect(INTERVIEW_TEMPLATES.closingQuestions.length).toBeGreaterThan(0);
+    });
+
+    /**
+     * Feature: legacy-keeper, Property 2: Agent generates artifact-specific questions
+     * Validates: Requirements 2.2
+     */
+    test('Property: Agent generates artifact-specific questions', () => {
+      fc.assert(fc.property(
+        fc.array(fc.record({
+          type: fc.constantFrom('PR', 'COMMIT', 'JIRA_TICKET'),
+          id: fc.string({ minLength: 1, maxLength: 20 }).filter(s => s.trim().length > 0),
+          title: fc.string({ minLength: 5, maxLength: 100 }),
+          author: fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
+          date: fc.date()
+        }), { minLength: 1, maxLength: 10 }),
+        (artifacts) => {
+          const questionObjects = generateArtifactQuestions(artifacts);
+          
+          // Property: For any set of artifacts, generated questions should reference specific artifact IDs
+          const hasSpecificReferences = questionObjects.some(questionObj => {
+            const question = questionObj.question;
+            return artifacts.some(artifact => {
+              if (artifact.type === 'PR') {
+                return question.includes(`PR #${artifact.id}`);
+              } else if (artifact.type === 'COMMIT') {
+                return question.includes(artifact.id.substring(0, 8));
+              } else if (artifact.type === 'JIRA_TICKET') {
+                return question.includes(artifact.id);
+              }
+              return false;
+            });
+          });
+          
+          // Property: Questions should be artifact-specific, not generic
+          const isArtifactSpecific = questionObjects.length > 0 && hasSpecificReferences;
+          
+          // Property: Each artifact type should generate appropriate questions
+          const prArtifacts = artifacts.filter(a => a.type === 'PR');
+          const commitArtifacts = artifacts.filter(a => a.type === 'COMMIT');
+          const jiraArtifacts = artifacts.filter(a => a.type === 'JIRA_TICKET');
+          
+          const questions = questionObjects.map(q => q.question);
+          const prQuestionsExist = prArtifacts.length === 0 || questions.some(q => q.includes('PR #'));
+          const commitQuestionsExist = commitArtifacts.length === 0 || questions.some(q => q.includes('commit'));
+          const jiraQuestionsExist = jiraArtifacts.length === 0 || questions.some(q => q.includes('Jira ticket'));
+          
+          return isArtifactSpecific && prQuestionsExist && commitQuestionsExist && jiraQuestionsExist;
+        }
+      ), { numRuns: 100 });
     });
   });
 
@@ -254,17 +313,20 @@ describe('Memory Archaeologist Agent', () => {
         tags: ['api', 'database'],
         extractedAt: new Date('2024-01-01'),
         confidence: 0.85,
-        relatedTickets: ['PROJ-123', 'PROJ-124']
+        relatedTickets: ['PROJ-123', 'PROJ-124'],
+        relatedPRs: ['PR-456'],
+        relatedCommits: ['abc123def'],
+        sourceArtifacts: []
       };
 
       const formatted = formatKnowledgeForStorage(artifact);
       
-      expect(formatted.title).toBe('Test Knowledge Session');
+      expect(formatted.title).toContain('Legacy Document:');
       expect(formatted.content).toContain('emp123');
       expect(formatted.content).toContain('85%');
       expect(formatted.content).toContain('api, database');
       expect(formatted.content).toContain('PROJ-123, PROJ-124');
-      expect(formatted.content).toContain('Knowledge Transfer Session');
+      expect(formatted.content).toContain('Legacy Document');
     });
 
     test('should handle artifacts with minimal data', () => {
@@ -276,12 +338,15 @@ describe('Memory Archaeologist Agent', () => {
         tags: [],
         extractedAt: new Date(),
         confidence: 0.1,
-        relatedTickets: []
+        relatedTickets: [],
+        relatedPRs: [],
+        relatedCommits: [],
+        sourceArtifacts: []
       };
 
       const formatted = formatKnowledgeForStorage(minimalArtifact);
       
-      expect(formatted.title).toBe('Minimal Session');
+      expect(formatted.title).toContain('Legacy Document:');
       expect(formatted.content).toContain('emp123');
       expect(formatted.content).toContain('10%');
       expect(formatted.content).toBeDefined();

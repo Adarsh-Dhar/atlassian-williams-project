@@ -6,11 +6,18 @@ const {
   KnowledgeGapReport,
   ConfluencePageResult,
   ForgeApiResponse,
-  ApiError
+  ApiError,
+  BitbucketPR,
+  Commit,
+  DiffContext,
+  ChangedFile,
+  CodeArtifact,
+  DeveloperActivity,
+  UndocumentedIntensityReport
 } = require('../models');
 
 /**
- * Feature: institutional-memory-archaeologist, Property 4: Structured data return format
+ * Feature: legacy-keeper, Property 4: Structured data return format
  * Validates: Requirements 1.4
  */
 describe('Data Model Validation', () => {
@@ -54,7 +61,10 @@ describe('Data Model Validation', () => {
             content: fc.string({ minLength: 1 }),
             tags: fc.array(fc.string()),
             confidence: fc.float({ min: 0, max: 1, noNaN: true }),
-            relatedTickets: fc.array(fc.string())
+            relatedTickets: fc.array(fc.string()),
+            relatedPRs: fc.array(fc.string()),
+            relatedCommits: fc.array(fc.string()),
+            sourceArtifacts: fc.array(fc.object())
           }),
           (data) => {
             const artifact = new KnowledgeArtifact(data);
@@ -292,6 +302,269 @@ describe('Data Model Validation', () => {
             expect(validation.isValid).toBe(true);
             expect(error.code).toBe(data.code);
             expect(error.message).toBe(data.message);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe('BitbucketPR', () => {
+    test('should create valid Bitbucket PR with required fields', () => {
+      const pr = new BitbucketPR({
+        id: 'pr-123',
+        title: 'Test PR',
+        author: 'user1',
+        created: '2024-01-01T10:00:00Z'
+      });
+
+      const validation = pr.validate();
+      expect(validation.isValid).toBe(true);
+      expect(pr.getTotalLinesChanged()).toBe(0);
+      expect(pr.isHighComplexity()).toBe(false);
+    });
+
+    test('should identify high complexity PRs', () => {
+      const pr = new BitbucketPR({
+        id: 'pr-456',
+        title: 'Complex PR',
+        author: 'user2',
+        created: '2024-01-01T10:00:00Z',
+        complexityScore: 8.5
+      });
+
+      expect(pr.isHighComplexity()).toBe(true);
+    });
+
+    /**
+     * Property: For any valid Bitbucket PR data,
+     * the created object should pass validation
+     */
+    test('property: valid Bitbucket PRs pass validation', () => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            id: fc.string({ minLength: 1 }),
+            title: fc.string({ minLength: 1 }),
+            author: fc.string({ minLength: 1 }),
+            created: fc.date().map(d => d.toISOString()),
+            complexityScore: fc.float({ min: 0, max: 10, noNaN: true }),
+            linesAdded: fc.nat({ max: 10000 }),
+            linesDeleted: fc.nat({ max: 10000 })
+          }),
+          (data) => {
+            const pr = new BitbucketPR(data);
+            const validation = pr.validate();
+            expect(validation.isValid).toBe(true);
+            expect(pr.getTotalLinesChanged()).toBe(data.linesAdded + data.linesDeleted);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe('Commit', () => {
+    test('should create valid commit with required fields', () => {
+      const commit = new Commit({
+        hash: 'abc123def456',
+        message: 'Test commit',
+        author: 'user1',
+        date: '2024-01-01T10:00:00Z'
+      });
+
+      const validation = commit.validate();
+      expect(validation.isValid).toBe(true);
+    });
+
+    /**
+     * Property: For any valid commit data,
+     * the created object should pass validation
+     */
+    test('property: valid commits pass validation', () => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            hash: fc.string({ minLength: 1 }),
+            message: fc.string({ minLength: 1 }),
+            author: fc.string({ minLength: 1 }),
+            date: fc.date().map(d => d.toISOString()),
+            filesChanged: fc.array(fc.string()),
+            linesChanged: fc.nat({ max: 10000 })
+          }),
+          (data) => {
+            const commit = new Commit(data);
+            const validation = commit.validate();
+            expect(validation.isValid).toBe(true);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe('CodeArtifact', () => {
+    test('should create valid code artifact with required fields', () => {
+      const artifact = new CodeArtifact({
+        type: 'PR',
+        id: 'pr-123',
+        title: 'Test PR',
+        author: 'user1',
+        date: '2024-01-01T10:00:00Z'
+      });
+
+      const validation = artifact.validate();
+      expect(validation.isValid).toBe(true);
+    });
+
+    /**
+     * Property: For any valid code artifact data,
+     * the created object should pass validation
+     */
+    test('property: valid code artifacts pass validation', () => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            type: fc.constantFrom('PR', 'COMMIT', 'JIRA_TICKET'),
+            id: fc.string({ minLength: 1 }),
+            title: fc.string({ minLength: 1 }),
+            author: fc.string({ minLength: 1 }),
+            date: fc.date().map(d => d.toISOString()),
+            documentationLevel: fc.constantFrom('NONE', 'MINIMAL', 'ADEQUATE', 'COMPREHENSIVE'),
+            complexityIndicators: fc.array(fc.string())
+          }),
+          (data) => {
+            const artifact = new CodeArtifact(data);
+            const validation = artifact.validate();
+            expect(validation.isValid).toBe(true);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe('DeveloperActivity', () => {
+    test('should create valid developer activity with required fields', () => {
+      const activity = new DeveloperActivity({
+        userId: 'user123'
+      });
+
+      const validation = activity.validate();
+      expect(validation.isValid).toBe(true);
+      expect(activity.getTotalActivity()).toBe(0);
+    });
+
+    /**
+     * Property: For any valid developer activity data,
+     * the created object should pass validation
+     */
+    test('property: valid developer activities pass validation', () => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            userId: fc.string({ minLength: 1 }),
+            jiraTickets: fc.array(fc.object()),
+            pullRequests: fc.array(fc.object()),
+            commits: fc.array(fc.object()),
+            totalComplexityScore: fc.float({ min: 0, max: 100, noNaN: true }),
+            documentationRatio: fc.float({ min: 0, max: 1, noNaN: true })
+          }),
+          (data) => {
+            const activity = new DeveloperActivity(data);
+            const validation = activity.validate();
+            expect(validation.isValid).toBe(true);
+            expect(activity.getTotalActivity()).toBe(
+              data.jiraTickets.length + data.pullRequests.length + data.commits.length
+            );
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe('UndocumentedIntensityReport', () => {
+    test('should create valid undocumented intensity report', () => {
+      const report = new UndocumentedIntensityReport({
+        userId: 'user123'
+      });
+
+      const validation = report.validate();
+      expect(validation.isValid).toBe(true);
+    });
+
+    test('should calculate risk level correctly', () => {
+      expect(UndocumentedIntensityReport.calculateRiskLevel(8.5)).toBe('CRITICAL');
+      expect(UndocumentedIntensityReport.calculateRiskLevel(6.5)).toBe('HIGH');
+      expect(UndocumentedIntensityReport.calculateRiskLevel(4.0)).toBe('MEDIUM');
+      expect(UndocumentedIntensityReport.calculateRiskLevel(2.0)).toBe('LOW');
+    });
+
+    /**
+     * Property: For any valid undocumented intensity report data,
+     * the created object should pass validation
+     */
+    test('property: valid undocumented intensity reports pass validation', () => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            userId: fc.string({ minLength: 1 }),
+            highComplexityPRs: fc.array(fc.object()),
+            criticalJiraTickets: fc.array(fc.object()),
+            documentationLinks: fc.array(fc.string()),
+            undocumentedIntensityScore: fc.float({ min: 0, max: 20, noNaN: true }),
+            specificArtifacts: fc.array(fc.string()),
+            riskLevel: fc.constantFrom('CRITICAL', 'HIGH', 'MEDIUM', 'LOW')
+          }),
+          (data) => {
+            const report = new UndocumentedIntensityReport(data);
+            const validation = report.validate();
+            expect(validation.isValid).toBe(true);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe('InterviewContext', () => {
+    test('should create valid interview context with enhanced fields', () => {
+      const context = new InterviewContext({
+        employeeId: 'emp-123',
+        sessionId: 'session-456',
+        recentPullRequests: [],
+        commitHistory: [],
+        undocumentedIntensityScore: 5.5,
+        specificArtifacts: ['PR #123', 'JIRA-456']
+      });
+
+      const validation = context.validate();
+      expect(validation.isValid).toBe(true);
+    });
+
+    /**
+     * Property: For any valid interview context data,
+     * the created object should pass validation
+     */
+    test('property: valid interview contexts pass validation', () => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            employeeId: fc.string({ minLength: 1 }),
+            sessionId: fc.string({ minLength: 1 }),
+            department: fc.string(),
+            role: fc.string(),
+            identifiedGaps: fc.array(fc.object()),
+            recentPullRequests: fc.array(fc.object()),
+            commitHistory: fc.array(fc.object()),
+            undocumentedIntensityScore: fc.float({ min: 0, max: 20, noNaN: true }),
+            specificArtifacts: fc.array(fc.string())
+          }),
+          (data) => {
+            const context = new InterviewContext(data);
+            const validation = context.validate();
+            expect(validation.isValid).toBe(true);
           }
         ),
         { numRuns: 100 }

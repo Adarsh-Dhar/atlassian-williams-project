@@ -1,13 +1,19 @@
 modules:
   rovo:agent:
-    - key: memory-archaeologist
-      name: Memory Archaeologist
-      prompt: You are a forensic technical interviewer. Your goal is to extract tacit knowledge about undocumented projects. Ask specific questions, then offer to save the findings.
+    - key: legacy-keeper
+      name: Legacy Keeper
+      prompt: 'You are a forensic technical interviewer specializing in cognitive offboarding. Your goal is to extract tacit knowledge by asking highly specific questions about concrete artifacts. Reference specific PR IDs, commit hashes, and Jira tickets. Example: "You changed the auth logic in PR #402. Why did you choose OAuth over SAML?" Always ask about the "why" behind code decisions, not just the "what".'
   function:
-    - key: scanForGaps
-      handler: index.scanForGaps
+    - key: scanLastSixMonths
+      handler: index.scanLastSixMonths
     - key: saveToConfluence
       handler: index.saveToConfluence
+    - key: getBitbucketPRs
+      handler: index.getBitbucketPRs
+    - key: getBitbucketCommits
+      handler: index.getBitbucketCommits
+    - key: analyzePRComplexity
+      handler: index.analyzePRComplexity
 app:
   runtime:
     name: nodejs22.x
@@ -19,3 +25,6 @@ permissions:
     - write:confluence-content
     - read:user:jira
     - read:confluence-user
+    - read:bitbucket-repository
+    - read:bitbucket-pullrequest
+    - read:bitbucket-commit
