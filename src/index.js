@@ -1,11 +1,12 @@
 const Resolver = require('@forge/resolver');
 const { scanLastSixMonths } = require('./scanners/legacyDetector');
 const { saveToConfluence } = require('./services/confluenceService');
-const { 
-  getPullRequestsLastSixMonths, 
-  getCommitHistory, 
-  analyzePRComplexity 
-} = require('./services/bitbucketService');
+// Bitbucket service removed due to workspace/site scope conflicts
+// const { 
+//   getPullRequestsLastSixMonths, 
+//   getCommitHistory, 
+//   analyzePRComplexity 
+// } = require('./services/bitbucketService');
 const {
   triggerCognitiveOffboarding,
   executeScanPhase,
@@ -22,9 +23,10 @@ const resolver = new Resolver();
 // Register resolver functions
 resolver.define('scanLastSixMonths', scanLastSixMonths);
 resolver.define('saveToConfluence', saveToConfluence);
-resolver.define('getBitbucketPRs', getPullRequestsLastSixMonths);
-resolver.define('getBitbucketCommits', getCommitHistory);
-resolver.define('analyzePRComplexity', analyzePRComplexity);
+// Bitbucket functions removed due to workspace/site scope conflicts
+// resolver.define('getBitbucketPRs', getPullRequestsLastSixMonths);
+// resolver.define('getBitbucketCommits', getCommitHistory);
+// resolver.define('analyzePRComplexity', analyzePRComplexity);
 
 // Register cognitive offboarding workflow functions
 resolver.define('triggerCognitiveOffboarding', triggerCognitiveOffboarding);
@@ -39,9 +41,10 @@ resolver.define('validateWorkflowCompletion', validateWorkflowCompletion);
 // Export individual functions for manifest handlers
 exports.scanLastSixMonths = scanLastSixMonths;
 exports.saveToConfluence = saveToConfluence;
-exports.getBitbucketPRs = getPullRequestsLastSixMonths;
-exports.getBitbucketCommits = getCommitHistory;
-exports.analyzePRComplexity = analyzePRComplexity;
+// Bitbucket exports removed due to workspace/site scope conflicts
+// exports.getBitbucketPRs = getPullRequestsLastSixMonths;
+// exports.getBitbucketCommits = getCommitHistory;
+// exports.analyzePRComplexity = analyzePRComplexity;
 
 // Export cognitive offboarding workflow functions
 exports.triggerCognitiveOffboarding = triggerCognitiveOffboarding;

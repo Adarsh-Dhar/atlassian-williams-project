@@ -181,10 +181,9 @@ describe('Legacy Detector', () => {
         riskLevel: report.riskLevel
       }, null, 2));
       
-      // Expected: 2 critical tickets + 1 high complexity PR = 3, 1 documentation link
-      // Score should be 3/1 = 3
-      // But we're getting 1, which means only 2 critical tickets and 0 high complexity PRs
-      // This suggests the Bitbucket integration is not working
+      // With new weighted formula: (PR_Complexity * 1.5) + (Critical_Tickets * 2.0) / (Doc_Links * 0.5 or 1)
+      // Expected: 1 critical ticket found (based on documentation ratio calculation below)
+      // Score calculation: (0 * 1.5) + (1 * 2.0) / 1 = 2.0
       
       // Based on the documentation ratio calculation:
       // First ticket: (17/100) + (0*2) + (5*0.5) = 2.67/10 = 0.267 < 0.3 (critical)
@@ -193,13 +192,17 @@ describe('Legacy Detector', () => {
       expect(report.criticalJiraTickets.length).toBe(1);
       expect(report.documentationLinks.length).toBe(0); // Only from critical tickets
       
-      // If no high complexity PRs are found, score should be 1/1 = 1
+      // With new weighted formula:
+      // 1 critical ticket * 2.0 (CRITICAL_TICKET weight) = 2.0
+      // 0 high complexity PRs * 1.5 (PR_COMPLEXITY weight) = 0.0
+      // Total = 2.0, no docs so divide by 1 = 2.0
       if (report.highComplexityPRs.length === 0) {
-        expect(report.undocumentedIntensityScore).toBeCloseTo(1, 2);
-        expect(report.riskLevel).toBe('LOW');
-      } else {
         expect(report.undocumentedIntensityScore).toBeCloseTo(2, 2);
         expect(report.riskLevel).toBe('MEDIUM');
+      } else {
+        // If high complexity PRs are found, the score would be higher
+        expect(report.undocumentedIntensityScore).toBeGreaterThan(2);
+        expect(report.riskLevel).toMatch(/MEDIUM|HIGH|CRITICAL/);
       }
     });
 

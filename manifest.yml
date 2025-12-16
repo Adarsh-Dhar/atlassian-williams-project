@@ -2,29 +2,66 @@ modules:
   rovo:agent:
     - key: legacy-keeper
       name: Legacy Keeper
-      prompt: 'You are a forensic technical interviewer specializing in cognitive offboarding. Your goal is to extract tacit knowledge by asking highly specific questions about concrete artifacts. Reference specific PR IDs, commit hashes, and Jira tickets. Example: "You changed the auth logic in PR #402. Why did you choose OAuth over SAML?" Always ask about the "why" behind code decisions, not just the "what".'
+      prompt: 'You are a forensic technical interviewer specializing in cognitive
+        offboarding. Your goal is to extract tacit knowledge by asking highly
+        specific questions about concrete artifacts. Reference specific PR IDs,
+        commit hashes, and Jira tickets. Example: "You changed the auth logic in
+        PR #402. Why did you choose OAuth over SAML?" Always ask about the "why"
+        behind code decisions, not just the "what".'
   function:
     - key: scanLastSixMonths
       handler: index.scanLastSixMonths
     - key: saveToConfluence
       handler: index.saveToConfluence
-    - key: getBitbucketPRs
-      handler: index.getBitbucketPRs
-    - key: getBitbucketCommits
-      handler: index.getBitbucketCommits
-    - key: analyzePRComplexity
-      handler: index.analyzePRComplexity
+
 app:
   runtime:
     name: nodejs22.x
   id: ari:cloud:ecosystem::app/a474be86-f2d8-476f-83f1-4b2558bf23e9
+
 permissions:
   scopes:
+    - write:jira-work
     - read:jira-work
     - read:confluence-content.all
     - write:confluence-content
     - read:user:jira
     - read:confluence-user
-    - read:bitbucket-repository
-    - read:bitbucket-pullrequest
-    - read:bitbucket-commit
+  external:
+    fetch:
+      backend:
+        - 'https://api.bitbucket.org'
+        - 'https://bitbucket.org'
+
+providers:
+  auth:
+    - key: bitbucket
+      name: Bitbucket
+      clientId: 'ari:cloud:bitbucket::app/ZvdyZNhbwnYdfvbDBX' 
+      scopes:
+        - repository
+        - pullrequest
+        - account
+      type: oauth2
+      remotes:
+        - bitbucket-api
+        - bitbucket-site
+      actions:
+        authorization:
+          remote: bitbucket-site
+          path: /site/oauth2/authorize
+        exchange:
+          remote: bitbucket-site
+          path: /site/oauth2/access_token
+        revoke:
+          remote: bitbucket-site
+          path: /site/oauth2/access_token
+        retrieveProfile:
+          remote: bitbucket-api
+          path: /2.0/user
+
+remotes:
+  - key: bitbucket-api
+    baseUrl: https://api.bitbucket.org
+  - key: bitbucket-site
+    baseUrl: https://bitbucket.org

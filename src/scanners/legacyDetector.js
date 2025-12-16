@@ -7,6 +7,15 @@ const { JiraTicket, UndocumentedIntensityReport } = require('../models');
  */
 
 /**
+ * Tunable weights for Undocumented Intensity algorithm calibration
+ */
+const WEIGHTS = {
+  PR_COMPLEXITY: 1.5,
+  CRITICAL_TICKET: 2.0,
+  DOC_LINK_PENALTY: 0.5
+};
+
+/**
  * Main Legacy Detector function that analyzes last 6 months of Jira + Bitbucket activity to identify Undocumented Intensity
  * @param {Object} req - Forge request object
  * @returns {Promise<UndocumentedIntensityReport[]>} Array of undocumented intensity reports
@@ -81,9 +90,16 @@ async function getActiveUsersLastSixMonths(sixMonthsAgo) {
       return [];
     }
     
-    // Extract unique assignees
+    // Extract unique assignees with 6-month constraint validation
     const userMap = new Map();
     response.data.issues.forEach(issue => {
+      // Double-check 6-month constraint for user extraction
+      const updatedDate = new Date(issue.fields.updated);
+      if (updatedDate < sixMonthsAgo) {
+        console.warn(`6-month filter: Skipping old issue ${issue.key} for user extraction (updated: ${updatedDate.toISOString().split('T')[0]})`);
+        return;
+      }
+      
       if (issue.fields.assignee && issue.fields.assignee.accountId) {
         userMap.set(issue.fields.assignee.accountId, {
           accountId: issue.fields.assignee.accountId,
@@ -101,7 +117,7 @@ async function getActiveUsersLastSixMonths(sixMonthsAgo) {
 }
 
 /**
- * Calculate Undocumented Intensity using the formula: (High Complexity PRs + Critical Jira Tickets) / (Documentation Links)
+ * Calculate Undocumented Intensity using the weighted formula: (Total PR Complexity * PR_COMPLEXITY) + (Critical Ticket Count * CRITICAL_TICKET) / (Documentation Links * DOC_LINK_PENALTY)
  * @param {string} userId - User account ID
  * @param {Date} sixMonthsAgo - Date representing 6 months ago
  * @returns {Promise<UndocumentedIntensityReport>} Undocumented intensity report
@@ -111,16 +127,39 @@ async function calculateUndocumentedIntensity(userId, sixMonthsAgo) {
     // Get critical Jira tickets (high activity, low documentation) for last 6 months
     const criticalTickets = await identifyCriticalTickets(userId, sixMonthsAgo);
     
-    // For now, simulate high complexity PRs (Bitbucket integration will be added in task 2)
+    // Get high complexity PRs with Bitbucket integration
     const highComplexityPRs = await identifyHighComplexityPRs(userId, sixMonthsAgo);
     
     // Find documentation links across all artifacts
     const documentationLinks = await findDocumentationLinks(criticalTickets, highComplexityPRs);
     
-    // Calculate Undocumented Intensity Score
-    const numerator = highComplexityPRs.length + criticalTickets.length;
-    const denominator = Math.max(documentationLinks.length, 1); // Avoid division by zero
-    const undocumentedIntensityScore = numerator / denominator;
+    // Calculate total PR complexity score
+    const totalPRComplexity = highComplexityPRs.reduce((sum, pr) => sum + (pr.complexityScore || 0), 0);
+    
+    // Calculate Undocumented Intensity Score using tunable weights
+    const complexityComponent = totalPRComplexity * WEIGHTS.PR_COMPLEXITY;
+    const ticketComponent = criticalTickets.length * WEIGHTS.CRITICAL_TICKET;
+    const baseScore = complexityComponent + ticketComponent;
+    
+    // Apply documentation penalty (ensure we never divide by zero)
+    const docCount = documentationLinks.length;
+    const penaltyDivisor = docCount > 0 ? (docCount * WEIGHTS.DOC_LINK_PENALTY) : 1;
+    const undocumentedIntensityScore = baseScore / penaltyDivisor;
+    
+    // Calibration logging for algorithm tuning
+    const mathExpression = `(${totalPRComplexity} * ${WEIGHTS.PR_COMPLEXITY}) + (${criticalTickets.length} * ${WEIGHTS.CRITICAL_TICKET}) / ${docCount > 0 ? `(${docCount} * ${WEIGHTS.DOC_LINK_PENALTY})` : '1'}`;
+    
+    console.log(JSON.stringify({
+      event: "CALIBRATION_LOG",
+      user: userId,
+      inputs: {
+        complexity: totalPRComplexity,
+        tickets: criticalTickets.length,
+        docs: docCount
+      },
+      math: mathExpression,
+      finalScore: Math.round(undocumentedIntensityScore * 100) / 100
+    }));
     
     // Determine risk level based on score
     let riskLevel = 'LOW';
@@ -173,6 +212,7 @@ async function identifyCriticalTickets(userId, sixMonthsAgo) {
       // Enforce 6-month constraint at data level
       const updatedDate = new Date(issue.fields.updated);
       if (updatedDate < sixMonthsAgo) {
+        console.warn(`6-month filter: Skipping old ticket ${issue.key} (updated: ${updatedDate.toISOString().split('T')[0]})`);
         continue; // Skip tickets older than 6 months
       }
       
@@ -222,7 +262,11 @@ async function identifyHighComplexityPRs(userId, sixMonthsAgo) {
     // Filter PRs to enforce strict 6-month constraint at data level
     const filteredPRs = allPRs.filter(pr => {
       const prDate = new Date(pr.created);
-      return prDate >= sixMonthsAgo;
+      if (prDate < sixMonthsAgo) {
+        console.warn(`6-month filter: Skipping old PR #${pr.id} (created: ${prDate.toISOString().split('T')[0]})`);
+        return false;
+      }
+      return true;
     });
     
     // Identify high complexity PRs (complexity score >= 6 out of 10)
